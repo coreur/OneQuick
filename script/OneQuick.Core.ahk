@@ -1634,15 +1634,38 @@ class WinMenu
 {
 	static InfoObj := {}
 	static HideIDs := {}
+	static RollIDs := {}
+	static RollXs  := {}
+	static RollYs  := {}
+	static RollWs  := {}
+	static RollHs  := {}
 	static ini_registered := 0
-
 	Ini()
 	{
 		if (this.ini_registered == 1)
 			Return
 		this.HideIDs := OneQuick.UserData["WinMenu_HideIDs"]
+		;
+		this.RollIDs := OneQuick.UserData["WinMenu_RollIDs"]
+		this.RollXs := OneQuick.UserData["WinMenu_RollXs"]
+		this.RollYs := OneQuick.UserData["WinMenu_RollYs"]
+		this.RollWs := OneQuick.UserData["WinMenu_RollWs"]
+		this.RollHs := OneQuick.UserData["WinMenu_RollHs"]
+		;
 		if not IsObject(this.HideIDs)
 			this.HideIDs := {}
+		;
+		if not IsObject(this.RollIDs)
+			this.RollIDs := {}
+		if not IsObject(this.RollXs)
+			this.RollXs := {}
+		if not IsObject(this.RollYs)
+			this.RollYs := {}
+		if not IsObject(this.RollWs)
+			this.RollWs := {}
+		if not IsObject(this.RollHs)
+			this.RollHs := {}
+		;
 		OneQuick.OnExit("Sub_WinMenu_OnExit")
 		this.ini_registered := 1
 	}
@@ -1668,6 +1691,12 @@ class WinMenu
 		{
 			Menu, windowMenu_ShowWinMenu, DeleteAll
 		}
+		;
+		Try
+		{
+			Menu, windowMenu_UnRollWinMenu, DeleteAll
+		}
+		;
 		Try
 		{
 			Menu, WinMenu_Trans, DeleteAll
@@ -1705,6 +1734,23 @@ class WinMenu
 			Menu, windowMenu_ShowWinMenu, Disable, <empty>
 		}
 		Menu, windowMenu, Add, Show Window, :windowMenu_ShowWinMenu
+		;卷起窗口菜单
+		Menu, windowMenu, Add
+		Menu, windowMenu, Add, Roll Window, Sub_WinMenu_RollWindow
+		;
+		RollIDs_IsVoid := 1
+		For k, v in this.RollIDs
+		{
+			Menu, windowMenu_UnRollWinMenu, Add, % k, Sub_WinMenu_UnRollWindow
+			RollIDs_IsVoid := 0
+		}
+		if (RollIDs_IsVoid)
+		{
+			Menu, windowMenu_UnRollWinMenu, Add, <empty>, Sub_WinMenu_UnRollWindow
+			Menu, windowMenu_UnRollWinMenu, Disable, <empty>
+		}
+		Menu, windowMenu, Add, Unroll Window, :windowMenu_UnRollWinMenu
+		;
 		Menu, windowMenu, Show
 	}
 }
@@ -1728,19 +1774,48 @@ Return
 Sub_WinMenu_HideWindow:
 id := WinMenu.InfoObj[3]
 WinHide, ahk_id %id%
-WinMenu.HideIDs[id "  " WinMenu.InfoObj[1]] := id
+WinMenu.HideIDs[WinMenu.InfoObj[1]] := id
 Return
 
 Sub_WinMenu_ShowWindow:
 id := WinMenu.HideIDs[A_ThisMenuItem]
 Sys.Win.Show(id)
-WinMenu.HideIDs.Remove(A_ThisMenuItem)
+WinMenu.HideIDs.Delete(A_ThisMenuItem)
 Return
 
 Sub_WinMenu_OnExit:
 OneQuick.UserData["WinMenu_HideIDs"] := WinMenu.HideIDs
+;
+OneQuick.UserData["WinMenu_RollIDs"] := WinMenu.RollIDs
+OneQuick.UserData["WinMenu_RollXs"]  := WinMenu.RollXs
+OneQuick.UserData["WinMenu_RollYs"]  := WinMenu.RollYs
+OneQuick.UserData["WinMenu_RollWs"]  := WinMenu.RollWs
+OneQuick.UserData["WinMenu_RollHs"]  := WinMenu.RollHs
+;
 Return
+;卷起窗口
+Sub_WinMenu_RollWindow:
+ws_MinHeight := 25
+id := WinMenu.InfoObj[3]
+WinGetPos, Xpos, Ypos, Weight, Height, ahk_id %id%
+WinMenu.RollXs[WinMenu.InfoObj[1]] := Xpos
+WinMenu.RollYs[WinMenu.InfoObj[1]] := Ypos
+WinMenu.RollWs[WinMenu.InfoObj[1]] := Weight
+WinMenu.RollHs[WinMenu.InfoObj[1]] := Height
+WinMove, ahk_id %id%,,,,, %ws_MinHeight%
+WinMenu.RollIDs[WinMenu.InfoObj[1]] := id
+Return
+;恢复卷起的窗口
+Sub_WinMenu_UnRollWindow:
+id := WinMenu.RollIDs[A_ThisMenuItem]
+Xpos := WinMenu.RollXs[WinMenu.InfoObj[1]]
+Ypos := WinMenu.RollYs[WinMenu.InfoObj[1]]
+Weight := WinMenu.RollWs[WinMenu.InfoObj[1]]
+Height := WinMenu.RollHs[WinMenu.InfoObj[1]]
+WinMenu.RollIDs.Delete(A_ThisMenuItem)
+WinMove, ahk_id %id%, , %Xpos%, %Ypos%, %Weight%, %Height%
 
+Return
 
 ; //////////////////////////////////////////////////////////////////////////
 ; //////////////////////////////////////////////////////////////////////////
